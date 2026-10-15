@@ -1,0 +1,41 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: petshop
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pet
+    username: postgres
+    password: SenhaForte123
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    clean-disabled: false
+    clean-on-validation-error: true
+
+app:
+  shop-name: Pet Shop
+  jwt:
+    secret: petshop-dev-secret-key-change-me-please-32chars-min
+    expiration-ms: 86400000
+  owner:
+    email: dono@petshop.local
+    password: dono123
+    name: Dono
+  attendant:
+    email: atendente@petshop.local
+    password: atendente123
+    name: Atendente
+
+logging:
+  level:
+    org.springframework.security: INFO
