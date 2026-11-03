@@ -1,7 +1,9 @@
 package com.petshop.config;
 
 import com.petshop.security.JwtAuthFilter;
+import java.util.Arrays;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -24,9 +26,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final List<String> corsAllowedOrigins;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(
+            JwtAuthFilter jwtAuthFilter,
+            @Value("${app.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000}") String corsAllowedOrigins) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.corsAllowedOrigins = Arrays.stream(corsAllowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 
     @Bean
@@ -60,9 +69,7 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://127.0.0.1:3000"));
+        config.setAllowedOrigins(corsAllowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

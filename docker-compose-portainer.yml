@@ -1,0 +1,81 @@
+# Stack Pet Shop API — develop (Portainer / Swarm + Traefik).
+#
+# Portainer: "Load variables from .env file" com o .env de develop.
+# IMAGE_TAG: no 1º deploy pode ficar vazio (= latest).
+#
+# Stack name sugerido: petshop-api
+# Rede Traefik: network_aw | Rede Postgres: network_database
+#
+# Pré-requisitos (VPS):
+#   - redes externas: network_aw, network_database
+#   - Postgres com database petshop (mesmo host da network_database)
+#   - DNS A apontando TRAEFIK_API_HOST para o IP da VPS (proxy cinza no Cloudflare)
+
+version: "3.8"
+
+services:
+  petshop-api:
+    image: petshop-api:${IMAGE_TAG:-latest}
+
+    hostname: petshop-back
+
+    environment:
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/petshop}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-petshop}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      APP_SHOP_NAME: ${APP_SHOP_NAME:-Pet Shop}
+      APP_JWT_SECRET: ${APP_JWT_SECRET}
+      APP_JWT_EXPIRATION_MS: ${APP_JWT_EXPIRATION_MS:-86400000}
+      APP_OWNER_EMAIL: ${APP_OWNER_EMAIL:-dono@petshop.local}
+      APP_OWNER_PASSWORD: ${APP_OWNER_PASSWORD:-dono123}
+      APP_OWNER_NAME: ${APP_OWNER_NAME:-Dono}
+      APP_ATTENDANT_EMAIL: ${APP_ATTENDANT_EMAIL:-atendente@petshop.local}
+      APP_ATTENDANT_PASSWORD: ${APP_ATTENDANT_PASSWORD:-atendente123}
+      APP_ATTENDANT_NAME: ${APP_ATTENDANT_NAME:-Atendente}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-https://petshop-front.aw.api.br,http://localhost:3000}
+
+    networks:
+      - network_aw
+      - network_database
+
+    deploy:
+      mode: replicated
+      replicas: 1
+
+      placement:
+        constraints:
+          - node.role == manager
+
+      update_config:
+        order: start-first
+        delay: 5s
+        failure_action: rollback
+
+      restart_policy:
+        condition: any
+
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=network_aw
+
+        - traefik.http.routers.petshop-api.rule=Host(`${TRAEFIK_API_HOST:-petshop-api.aw.api.br}`)
+        - traefik.http.routers.petshop-api.entrypoints=websecure
+        - traefik.http.routers.petshop-api.tls=true
+        - traefik.http.routers.petshop-api.tls.certresolver=letsencryptresolver
+
+        - traefik.http.services.petshop-api.loadbalancer.server.port=${SERVER_PORT:-8080}
+
+networks:
+  network_aw:
+    external: true
+  network_database:
+    external: true
