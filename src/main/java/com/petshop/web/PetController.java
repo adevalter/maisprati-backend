@@ -1,12 +1,17 @@
 package com.petshop.web;
 
+import com.petshop.service.PetBirthCertificateService;
+import com.petshop.service.PetBirthCertificateService.CertificatePdf;
 import com.petshop.service.PetService;
 import com.petshop.web.dto.PetHistoryResponse;
 import com.petshop.web.dto.PetRequest;
 import com.petshop.web.dto.PetResponse;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,9 +28,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class PetController {
 
     private final PetService petService;
+    private final PetBirthCertificateService petBirthCertificateService;
 
-    public PetController(PetService petService) {
+    public PetController(
+            PetService petService,
+            PetBirthCertificateService petBirthCertificateService) {
         this.petService = petService;
+        this.petBirthCertificateService = petBirthCertificateService;
     }
 
     @GetMapping
@@ -43,6 +52,15 @@ public class PetController {
     @GetMapping("/{id}/history")
     public List<PetHistoryResponse> history(@PathVariable Long id) {
         return petService.history(id);
+    }
+
+    @GetMapping("/{id}/birth-certificate")
+    public ResponseEntity<byte[]> birthCertificate(@PathVariable Long id) {
+        CertificatePdf pdf = petBirthCertificateService.generate(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + pdf.filename() + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf.content());
     }
 
     @PostMapping
